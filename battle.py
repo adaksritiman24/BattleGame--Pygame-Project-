@@ -4,6 +4,7 @@ pygame.init()
 import random
 import time
 import math
+import _thread
 
 
 pygame.font.init()
@@ -18,6 +19,12 @@ E =[pygame.transform.scale2x(pygame.image.load("enemy1.png")),pygame.transform.s
 pygame.transform.scale2x(pygame.image.load("enemy4.png"))]
 fire = pygame.transform.scale2x(pygame.image.load("fire.png"))
 enemy_fire = pygame.transform.scale2x(pygame.image.load("enemy_fire.png"))
+kill = pygame.transform.scale2x(pygame.image.load("en-af.png"))
+
+explosion = pygame.mixer.Sound("explosion.wav")
+
+player_explosion = pygame.mixer.Sound("player_explosion1.wav")
+
 bg_color = (0,0,0)
 yellow = (255,255,0)
 game = True
@@ -165,6 +172,20 @@ def gameover(score,scr):
 	scr.blit(t1,(64,120))
 	scr.blit(t2,(210,180))
 
+
+class Kill:
+	def __init__(self, loc, win):
+		self.kill = kill
+		self.duration = 10
+		self.loc = loc
+		self.win = win
+
+	def showUp(self):
+		self.win.blit(self.kill,(self.loc[0],self.loc[1]))
+		self.duration-=1
+
+kill_list = []
+
 HighScore =0
 score=0
 def main(game ,score, HighScore):
@@ -180,7 +201,7 @@ def main(game ,score, HighScore):
 	for _ in range(7):
 		enemy = Enemy(scr)
 		enemies.append(enemy)
-	for _ in range(5):
+	for _ in range(3):
 		fi = Enemy_Fire(scr)
 		enfi.append(fi)	
 	allowed = 1000
@@ -197,10 +218,15 @@ def main(game ,score, HighScore):
 		for i,fi in enumerate(enfi):
 			fi.move(scr , 6)
 			if fi.player_collision(player):
+				player_explosion.play()
 				lives-=1
 				#print(lives)
 				if lives ==0:
+					scr.blit(kill,player.rect)
 					gameover(score,scr)
+					pygame.display.update()
+					
+					kill_list.clear()
 					pygame.time.delay(2000)
 					game = False
 					score = 0
@@ -211,10 +237,16 @@ def main(game ,score, HighScore):
 		for i, enemy in enumerate(enemies):
 			enemy.move(scr)	
 			if enemy.enemy_collision(player):
+				player_explosion.play()
+				kill_list.append(Kill(enemy.rect,scr))
 				lives-=1
 				if lives ==0:
-					game = False
+					scr.blit(kill,player.rect)
 					gameover(score,scr)
+					pygame.display.update()
+
+					kill_list.clear()
+					game = False
 					pygame.time.delay(2000)
 					score = 0
 					main(True ,score,HighScore)
@@ -222,14 +254,23 @@ def main(game ,score, HighScore):
 				new = Enemy(scr)
 				enemies.append(new)
 			for	j,fire in enumerate(fires):
-				if enemy.fire_collision(fire)==1:
+				if enemy.fire_collision(fire)==1:	
 					score+=1
 					if score>HighScore:
 						HighScore+=1
 					fires.remove(fires[j])
 					enemies.remove(enemies[i])
+					explosion.play()
+					kill_list.append(Kill(enemy.rect,scr))
 					new = Enemy(scr)
 					enemies.append(new)
+
+		for b_index,blasts in enumerate(kill_list):
+			if blasts.duration<0:
+				kill_list.remove(kill_list[b_index])
+				continue
+			else:
+				blasts.showUp()	
 
 		if score>10:
 			en_speed =1.7	
@@ -241,6 +282,14 @@ def main(game ,score, HighScore):
 				scr.blit(E[int(en.counter%4)],(en.rect[0],en.rect[1]))
 			for fi in enfi:
 				scr.blit(fi.enemy,fi.rect)	
+
+			for b_index,blasts in enumerate(kill_list):
+				if blasts.duration<0:
+					kill_list.remove(kill_list[b_index])
+					continue
+				else:
+					blasts.showUp()	
+					
 		if(keys[pygame.K_RIGHT]):
 			morse =0
 			init =False	
@@ -249,6 +298,14 @@ def main(game ,score, HighScore):
 				scr.blit(E[int(en.counter%4)],(en.rect[0],en.rect[1]))
 			for fi in enfi:
 				scr.blit(fi.enemy,fi.rect)	
+
+			for b_index,blasts in enumerate(kill_list):
+				if blasts.duration<0:
+					kill_list.remove(kill_list[b_index])
+					continue
+				else:
+					blasts.showUp()	
+
 		if(keys[pygame.K_UP]):
 			morse =0
 			init =False	
@@ -257,6 +314,14 @@ def main(game ,score, HighScore):
 				scr.blit(E[int(en.counter%4)],(en.rect[0],en.rect[1]))
 			for fi in enfi:
 				scr.blit(fi.enemy,fi.rect)	
+
+			for b_index,blasts in enumerate(kill_list):
+				if blasts.duration<0:
+					kill_list.remove(kill_list[b_index])
+					continue
+				else:
+					blasts.showUp()		
+
 		if(keys[pygame.K_DOWN]):
 			morse =0
 			init =False	
@@ -265,6 +330,13 @@ def main(game ,score, HighScore):
 				scr.blit(E[int(en.counter%4)],(en.rect[0],en.rect[1]))
 			for fi in enfi:
 				scr.blit(fi.enemy,fi.rect)	
+
+			for b_index,blasts in enumerate(kill_list):
+				if blasts.duration<0:
+					kill_list.remove(kill_list[b_index])
+					continue
+				else:
+					blasts.showUp()	
 		if(keys[pygame.K_SPACE]):
 			if allowed > 100:
 				fired =True
@@ -303,5 +375,5 @@ def main(game ,score, HighScore):
 		pygame.display.update()
 
 
-
-main(game ,score,HighScore)
+if __name__=="__main__":
+	main(game ,score,HighScore)
